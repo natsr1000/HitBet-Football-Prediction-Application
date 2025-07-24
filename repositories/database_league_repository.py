@@ -5,31 +5,12 @@ Database-based repository for league data management
 import logging
 import pandas as pd
 from typing import List, Dict, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 from datetime import datetime
-from contextlib import contextmanager
 
 from models.database_models import League, Team, Match
-from database_config import get_db_session, close_db_session
+from database_config import db_session  # Use the shared context manager here
 
 logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def db_session() -> Session:
-    """Context manager for handling DB sessions safely"""
-    session = get_db_session()
-    try:
-        yield session
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Session rolled back due to: {str(e)}")
-        raise
-    finally:
-        close_db_session(session)
-
 
 class DatabaseLeagueRepository:
     """Database-based repository for league data management"""
