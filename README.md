@@ -2,7 +2,7 @@
 
 ## Overview
 
-ProphitBet is a sophisticated Flask-based web application designed to predict football match outcomes using machine learning. The application combines historical data analysis with advanced machine learning models to provide accurate predictions for various football leagues worldwide. The system uses PostgreSQL database for scalable data storage and management.
+HitBet is a sophisticated Flask-based web application designed to predict football match outcomes using machine learning. The application combines historical data analysis with advanced machine learning models to provide accurate predictions for various football leagues worldwide. The system uses PostgreSQL database for scalable data storage and management.
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
