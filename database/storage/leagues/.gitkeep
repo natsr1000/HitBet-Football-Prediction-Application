@@ -1,0 +1,2 @@
+# This file ensures that the database/storage/leagues directory is preserved in version control
+# even when it's empty. This directory contains league-related data files.
