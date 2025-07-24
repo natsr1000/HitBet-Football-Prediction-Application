@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProphitBet - Football Prediction Application</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232E8B57'><path d='M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h2v3c0 .55.45 1 1 1s1-.45 1-1v-3h2c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7z'/></svg>">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>⚽ ProphitBet</h1>
+            <p>Advanced Football Match Prediction using Machine Learning</p>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/" class="active">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/leagues">Leagues</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/models">Models</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/predictions">Predictions</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/analysis">Analysis</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            {% if error %}
+            <div class="alert alert-danger">
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Welcome Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Welcome to ProphitBet</h2>
+                </div>
+                <div class="card-body">
+                    <p>ProphitBet is a comprehensive football prediction system that uses machine learning to analyze historical match data and predict outcomes. Our advanced algorithms consider team statistics, recent form, and various performance indicators to provide accurate predictions.</p>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div style="font-size: 3rem; color: var(--primary-color);">📊</div>
+                                <h4>Data Analysis</h4>
+                                <p>Comprehensive analysis of historical match data from 1993-2025 across multiple leagues</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div style="font-size: 3rem; color: var(--primary-color);">🤖</div>
+                                <h4>ML Models</h4>
+                                <p>Advanced neural networks and random forest models with hyperparameter optimization</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div style="font-size: 3rem; color: var(--primary-color);">🔮</div>
+                                <h4>Predictions</h4>
+                                <p>Accurate match outcome predictions with confidence scores and probability distributions</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div style="font-size: 3rem; color: var(--primary-color);">📈</div>
+                                <h4>Analytics</h4>
+                                <p>Detailed performance metrics, visualizations, and model evaluation tools</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Overview -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.total_leagues or 0 }}</div>
+                    <div class="stat-label">Available Leagues</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.saved_leagues or 0 }}</div>
+                    <div class="stat-label">Downloaded Leagues</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.saved_models or 0 }}</div>
+                    <div class="stat-label">Trained Models</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.countries or 0 }}</div>
+                    <div class="stat-label">Countries Supported</div>
+                </div>
+            </div>
+
+            <!-- Recent Leagues -->
+            {% if leagues %}
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recently Downloaded Leagues</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>League Name</th>
+                                    <th>Matches</th>
+                                    <th>Size</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for league in leagues %}
+                                <tr>
+                                    <td><strong>{{ league.name }}</strong></td>
+                                    <td>{{ league.num_matches }}</td>
+                                    <td>{{ league.size_mb }} MB</td>
+                                    <td>
+                                        <a href="/analysis" class="btn btn-sm btn-info">Analyze</a>
+                                        <a href="/models" class="btn btn-sm btn-success">Train Model</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="/leagues" class="btn btn-primary">View All Leagues</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Quick Actions</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem;">📥</div>
+                                <h4>Download League Data</h4>
+                                <p>Get historical match data for training models</p>
+                                <a href="/leagues" class="btn btn-primary">Go to Leagues</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div style="font-size: 2rem; color: var(--success-color); margin-bottom: 1rem;">🏗️</div>
+                                <h4>Train Model</h4>
+                                <p>Create new prediction models using downloaded data</p>
+                                <a href="/models" class="btn btn-success">Train Models</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div style="font-size: 2rem; color: var(--info-color); margin-bottom: 1rem;">🔮</div>
+                                <h4>Make Predictions</h4>
+                                <p>Predict match outcomes using trained models</p>
+                                <a href="/predictions" class="btn btn-info">Make Predictions</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div style="font-size: 2rem; color: var(--warning-color); margin-bottom: 1rem;">📊</div>
+                                <h4>View Analysis</h4>
+                                <p>Analyze data and model performance</p>
+                                <a href="/analysis" class="btn btn-warning">View Analysis</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Key Features</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>📈 Advanced Analytics</h4>
+                            <ul>
+                                <li>Historical data from 1993-2025 seasons</li>
+                                <li>Multiple leagues across various countries</li>
+                                <li>16 comprehensive team statistics</li>
+                                <li>Real-time fixture scraping</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>🤖 Machine Learning</h4>
+                            <ul>
+                                <li>FCNet (Fully Connected Neural Network)</li>
+                                <li>Random Forest ensemble classifier</li>
+                                <li>Hyperparameter optimization with Optuna</li>
+                                <li>SMOTE for handling imbalanced datasets</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h4>🔮 Prediction Capabilities</h4>
+                            <ul>
+                                <li>Single match predictions</li>
+                                <li>Batch predictions from CSV files</li>
+                                <li>Scraped fixture predictions</li>
+                                <li>Confidence scores and probabilities</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>📊 Data Visualization</h4>
+                            <ul>
+                                <li>Interactive charts and graphs</li>
+                                <li>Performance metrics visualization</li>
+                                <li>Feature importance analysis</li>
+                                <li>Model comparison tools</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer style="background: var(--dark-color); color: white; padding: 2rem 0; margin-top: 3rem;">
+        <div class="container text-center">
+            <p>&copy; 2025 ProphitBet Football Prediction Application. Built with Machine Learning for accurate football predictions.</p>
+            <p>
+                <small>
+                    Data sources: football-data.co.uk, footystats.org | 
+                    Technologies: Python, TensorFlow, scikit-learn, Flask
+                </small>
+            </p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
