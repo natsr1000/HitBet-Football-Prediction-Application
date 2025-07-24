@@ -1,0 +1,2 @@
+# This file ensures that the database/storage/leagues/saved directory is preserved in version control
+# even when it's empty. This directory stores downloaded historical league data in CSV format.
