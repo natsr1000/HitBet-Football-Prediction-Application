@@ -1,0 +1,27 @@
+{
+  "demo_rf": {
+    "model_name": "demo_rf",
+    "model_type": "simple_random_forest",
+    "league_name": "England-Premier League",
+    "created_at": "2025-07-24T03:33:10.500514",
+    "file_path": "database/storage/checkpoints/demo_rf.pkl",
+    "accuracy": 0.5217391304347826,
+    "training_samples": 90,
+    "test_samples": 23,
+    "features": 32,
+    "class_distribution": {
+      "0": 30,
+      "1": 45,
+      "2": 38
+    },
+    "test_report": {
+      "accuracy": 0.5217391304347826,
+      "macro avg": {
+        "precision": 0.5111111111111111,
+        "recall": 0.4722222222222222,
+        "f1-score": 0.4782608695652174,
+        "support": 23
+      }
+    }
+  }
+}
