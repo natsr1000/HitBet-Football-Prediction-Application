@@ -6,17 +6,21 @@ import logging
 from flask_sqlalchemy import SQLAlchemy
 from contextlib import contextmanager
 
-# Logger setup
+# Configure module-level logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-# Create a global SQLAlchemy instance
+# Global SQLAlchemy instance (initialized in app.py with app context)
 db = SQLAlchemy()
 
 @contextmanager
 def db_session():
     """
     Context manager for clean and safe DB session handling.
-    Automatically commits or rolls back as needed.
+    
+    Example:
+        with db_session() as session:
+            session.add(obj)
     """
     session = db.session
     try:
