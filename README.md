@@ -1,4 +1,4 @@
-# ProphitBet Football Prediction Application with database
+# HitBet Football Prediction Application with database
 
 ## Overview
 
