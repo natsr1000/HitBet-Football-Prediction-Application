@@ -1,82 +1,74 @@
 """
-Database-based repository for league data management
+Database-based repository for league data management.
 """
 
 import logging
-import pandas as pd
 from typing import List, Dict, Optional
 from datetime import datetime
+import pandas as pd
 
 from models.database_models import League, Team, Match
-from database_config import db_session  # Use the shared context manager here
+from database_config import db_session
 
 logger = logging.getLogger(__name__)
 
+
 class DatabaseLeagueRepository:
-    """Database-based repository for league data management"""
+    """Repository for managing league data in the database."""
+
+    def _get_or_create_league(self, session, league_name: str) -> League:
+        league = session.query(League).filter_by(name=league_name).first()
+        if not league:
+            country = league_name.split('-')[0] if '-' in league_name else "Unknown"
+            league = League(name=league_name, country=country)
+            session.add(league)
+            session.flush()
+        return league
+
+    def _get_or_create_team(self, session, team_name: str, league_name: str, cache: dict) -> int:
+        if team_name in cache:
+            return cache[team_name]
+
+        team = session.query(Team).filter_by(name=team_name, league_name=league_name).first()
+        if not team:
+            team = Team(name=team_name, league_name=league_name)
+            session.add(team)
+            session.flush()
+
+        cache[team_name] = team.id
+        return team.id
 
     def save_league_data(self, league_name: str, match_data: pd.DataFrame) -> bool:
-        """Save league match data to database"""
+        """Save league match data to the database."""
         with db_session() as session:
             try:
-                league = session.query(League).filter_by(name=league_name).first()
-                if not league:
-                    country = league_name.split('-')[0] if '-' in league_name else "Unknown"
-                    league = League(name=league_name, country=country)
-                    session.add(league)
-                    session.flush()
-
-                teams_dict = {}
+                league = self._get_or_create_league(session, league_name)
+                teams_cache = {}
                 matches_added = 0
 
                 for _, row in match_data.iterrows():
                     try:
-                        home_team_name = str(row['HomeTeam'])
-                        if home_team_name not in teams_dict:
-                            home_team = session.query(Team).filter_by(
-                                name=home_team_name, league_name=league_name
-                            ).first()
-                            if not home_team:
-                                home_team = Team(name=home_team_name, league_name=league_name)
-                                session.add(home_team)
-                                session.flush()
-                            teams_dict[home_team_name] = home_team.id
+                        home_team_id = self._get_or_create_team(session, str(row['HomeTeam']), league_name, teams_cache)
+                        away_team_id = self._get_or_create_team(session, str(row['AwayTeam']), league_name, teams_cache)
+                        match_date = pd.to_datetime(row.get('Date')).to_pydatetime() if pd.notna(row.get('Date')) else datetime.now()
 
-                        away_team_name = str(row['AwayTeam'])
-                        if away_team_name not in teams_dict:
-                            away_team = session.query(Team).filter_by(
-                                name=away_team_name, league_name=league_name
-                            ).first()
-                            if not away_team:
-                                away_team = Team(name=away_team_name, league_name=league_name)
-                                session.add(away_team)
-                                session.flush()
-                            teams_dict[away_team_name] = away_team.id
-
-                        match_date = (
-                            pd.to_datetime(row['Date']).to_pydatetime()
-                            if 'Date' in row and pd.notna(row['Date'])
-                            else datetime.now()
-                        )
-
-                        existing_match = session.query(Match).filter_by(
+                        if session.query(Match).filter_by(
                             league_id=league.id,
-                            home_team_id=teams_dict[home_team_name],
-                            away_team_id=teams_dict[away_team_name],
+                            home_team_id=home_team_id,
+                            away_team_id=away_team_id,
                             date=match_date
-                        ).first()
-                        if existing_match:
+                        ).first():
                             continue
 
                         match = Match(
                             league_id=league.id,
                             date=match_date,
                             season=int(row.get('Season', 2024)),
-                            home_team_id=teams_dict[home_team_name],
-                            away_team_id=teams_dict[away_team_name],
-                            home_goals=int(row['FTHG']),
-                            away_goals=int(row['FTAG']),
-                            result=str(row['FTR']),
+                            home_team_id=home_team_id,
+                            away_team_id=away_team_id,
+                            home_goals=int(row.get('FTHG', 0)),
+                            away_goals=int(row.get('FTAG', 0)),
+                            result=str(row.get('FTR', '')),
                             home_goals_ht=int(row.get('HTHG', 0)) if pd.notna(row.get('HTHG')) else None,
                             away_goals_ht=int(row.get('HTAG', 0)) if pd.notna(row.get('HTAG')) else None,
                             result_ht=str(row.get('HTR', '')) if pd.notna(row.get('HTR')) else None
@@ -86,41 +78,37 @@ class DatabaseLeagueRepository:
                         matches_added += 1
 
                     except Exception as e:
-                        logger.warning(f"Error processing match row: {str(e)}")
+                        logger.warning(f"Error processing match row: {e}")
                         continue
 
-                logger.info(f"Saved {matches_added} matches for league {league_name}")
+                logger.info(f"Saved {matches_added} matches for league '{league_name}'")
                 return True
 
             except Exception as e:
-                logger.error(f"Error saving league data for {league_name}: {str(e)}")
+                logger.error(f"Failed to save league data for '{league_name}': {e}")
                 return False
 
     def load_league_data(self, league_name: str) -> Optional[pd.DataFrame]:
-        """Load league data from database as DataFrame"""
+        """Load league match data as a DataFrame."""
         with db_session() as session:
             try:
                 league = session.query(League).filter_by(name=league_name).first()
                 if not league:
-                    logger.error(f"League {league_name} not found in database")
+                    logger.warning(f"League '{league_name}' not found.")
                     return None
 
                 matches = session.query(Match).filter_by(league_id=league.id).all()
                 if not matches:
-                    logger.warning(f"No matches found for league {league_name}")
+                    logger.info(f"No matches found for league '{league_name}'.")
                     return None
 
-                data = []
-                for match in matches:
-                    home_team = session.query(Team).filter_by(id=match.home_team_id).first()
-                    away_team = session.query(Team).filter_by(id=match.away_team_id).first()
-                    if not home_team or not away_team:
-                        continue
+                team_map = {team.id: team.name for team in session.query(Team).filter_by(league_name=league_name).all()}
 
-                    row = {
+                data = [
+                    {
                         'Date': match.date.strftime('%Y-%m-%d') if match.date else '',
-                        'HomeTeam': home_team.name,
-                        'AwayTeam': away_team.name,
+                        'HomeTeam': team_map.get(match.home_team_id, ''),
+                        'AwayTeam': team_map.get(match.away_team_id, ''),
                         'FTHG': match.home_goals,
                         'FTAG': match.away_goals,
                         'FTR': match.result,
@@ -129,74 +117,71 @@ class DatabaseLeagueRepository:
                         'HTAG': match.away_goals_ht,
                         'HTR': match.result_ht
                     }
+                    for match in matches
+                ]
 
-                    data.append(row)
-
-                df = pd.DataFrame(data)
-                logger.info(f"Loaded {len(df)} matches for league {league_name}")
-                return df
+                return pd.DataFrame(data)
 
             except Exception as e:
-                logger.error(f"Error loading league data for {league_name}: {str(e)}")
+                logger.error(f"Failed to load league data for '{league_name}': {e}")
                 return None
 
     def get_saved_leagues(self) -> List[str]:
-        """Get list of saved league names"""
+        """Return list of saved league names."""
         with db_session() as session:
             try:
-                leagues = session.query(League.name).all()
-                return [league[0] for league in leagues]
+                return [name for (name,) in session.query(League.name).all()]
             except Exception as e:
-                logger.error(f"Error getting saved leagues: {str(e)}")
+                logger.error(f"Failed to get saved leagues: {e}")
                 return []
 
     def league_exists(self, league_name: str) -> bool:
-        """Check if league exists in database"""
+        """Check if a league exists in the database."""
         with db_session() as session:
             try:
-                return session.query(League).filter_by(name=league_name).first() is not None
+                return session.query(League.id).filter_by(name=league_name).first() is not None
             except Exception as e:
-                logger.error(f"Error checking league existence: {str(e)}")
+                logger.error(f"Error checking existence of league '{league_name}': {e}")
                 return False
 
     def delete_league(self, league_name: str) -> bool:
-        """Delete league and all associated data"""
+        """Delete a league and its data from the database."""
         with db_session() as session:
             try:
                 league = session.query(League).filter_by(name=league_name).first()
                 if not league:
                     return False
                 session.delete(league)
-                logger.info(f"Deleted league {league_name}")
+                logger.info(f"Deleted league '{league_name}'")
                 return True
             except Exception as e:
-                logger.error(f"Error deleting league {league_name}: {str(e)}")
+                logger.error(f"Failed to delete league '{league_name}': {e}")
                 return False
 
     def get_league_stats(self, league_name: str) -> Dict:
-        """Get statistics for a specific league"""
+        """Return league statistics (matches, teams, dates)."""
         with db_session() as session:
             try:
                 league = session.query(League).filter_by(name=league_name).first()
                 if not league:
                     return {}
 
-                match_count = session.query(Match).filter_by(league_id=league.id).count()
-                team_count = session.query(Team).filter_by(league_name=league_name).count()
+                match_q = session.query(Match).filter_by(league_id=league.id)
+                team_q = session.query(Team).filter_by(league_name=league_name)
 
-                first_match = session.query(Match).filter_by(league_id=league.id).order_by(Match.date.asc()).first()
-                last_match = session.query(Match).filter_by(league_id=league.id).order_by(Match.date.desc()).first()
+                first_match = match_q.order_by(Match.date.asc()).first()
+                last_match = match_q.order_by(Match.date.desc()).first()
 
                 return {
                     'name': league_name,
                     'country': league.country,
-                    'matches': match_count,
-                    'teams': team_count,
+                    'matches': match_q.count(),
+                    'teams': team_q.count(),
                     'first_match': first_match.date.strftime('%Y-%m-%d') if first_match else None,
                     'last_match': last_match.date.strftime('%Y-%m-%d') if last_match else None,
-                    'created_at': league.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                    'created_at': league.created_at.strftime('%Y-%m-%d %H:%M:%S') if league.created_at else None
                 }
 
             except Exception as e:
-                logger.error(f"Error getting league stats for {league_name}: {str(e)}")
+                logger.error(f"Failed to get stats for league '{league_name}': {e}")
                 return {}
