@@ -125,7 +125,8 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: Flask session handling with secret key
 - **Resource Limits**: File size restrictions and timeout configurations
 - 
-# HitBet-Football-Prediction-Application
+# HitBet-Football-Prediction-Application Folder
+
 app.py as the main Flask entry point — clean and obvious.
 
 Config and environment-related files (config.py, requirements, dependencies.md) grouped at root — easy to find.
