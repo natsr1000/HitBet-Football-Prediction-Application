@@ -1,1 +1,4 @@
+# This file ensures that the cache directory is preserved in version control
+# even when it's empty. This directory is used for temporary data storage during
+# web scraping and data processing operations.
 
