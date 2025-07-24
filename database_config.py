@@ -4,6 +4,7 @@ Database configuration and initialization for ProphitBet application
 
 import os
 import logging
+from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base, scoped_session
 from sqlalchemy.pool import StaticPool
@@ -32,7 +33,9 @@ class DatabaseManager:
         )
 
         # Session factory (scoped for thread safety in Flask)
-        self.SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=self.engine))
+        self.SessionLocal = scoped_session(
+            sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        )
 
     def init_database(self):
         """Create all tables based on ORM models"""
@@ -68,7 +71,6 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error closing session: {str(e)}")
 
-
 # Global instance (lazy initialized)
 _db_manager = None
 
@@ -85,3 +87,17 @@ def get_db_session():
 def close_db_session(session):
     """Convenience function to close a DB session"""
     get_db_manager().close_session(session)
+
+@contextmanager
+def db_session():
+    """Context manager for safe and clean DB session handling"""
+    session = get_db_session()
+    try:
+        yield session
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Session rolled back due to error: {str(e)}")
+        raise
+    finally:
+        close_db_session(session)
