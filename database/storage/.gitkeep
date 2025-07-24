@@ -1,0 +1,3 @@
+# This file ensures that the database/storage directory is preserved in version control
+# even when it's empty. The ProphitBet application uses this directory to store
+# league data and trained models.
